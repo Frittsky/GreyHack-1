@@ -1,0 +1,429 @@
+%YAML 1.2
+# Original file taken from the official sublime lua package.
+# Thoroughly desecrated by a complete noob at 1:00 AM. :/
+# Hey, atleast it works... Kinda? Idk, I'm too tired!
+---
+
+file_extensions:
+  - gs
+scope: source.lua
+variables:
+  reserved_word: |-
+    (?x:(?:
+      and|break|else if|else|end|false|for|function|
+      if|in|null|not|or|return|then|true|until|while
+    ){{identifier_break}})
+
+  identifier_start: (?:[A-Za-z_])
+  identifier_char: (?:[A-Za-z0-9_])
+  identifier_break: (?!{{identifier_char}})
+  identifier_raw: (?:{{identifier_start}}{{identifier_char}}*)
+  identifier: (?:(?!{{reserved_word}}){{identifier_raw}})
+
+  function_args_begin: (?:\(|"|'|\[=*\[|\{)
+  function_call_ahead: (?=\s*{{function_args_begin}})
+  function_assignment_ahead: (?=\s*=\s*function{{identifier_break}})
+
+contexts:
+  main:
+    - match: (end|function) # Hacky solution
+      scope: keyword.control.lua
+
+    - include: statements
+
+  else-pop:
+    - match: (?=\S)
+      pop: true
+
+  immediately-pop:
+    - match: ''
+      pop: true
+
+  prototype:
+    - match: (//).*
+      scope: comment.line.lua
+      captures:
+        1: punctuation.definition.comment.lua
+
+  end: # Hacky solution
+    - match: end\s+(function|while|for|if){{identifier_break}}
+      scope: keyword.control.end.lua
+      pop: true
+
+  block-contents:
+    - meta_scope: meta.block.lua
+    - include: end
+    - include: statements
+
+  statements:
+    - match: ;
+      scope: punctuation.terminator.statement.lua
+
+    # Hacky solution
+    - match: (?<!end)\s+function{{identifier_break}}
+      scope: storage.type.function.lua
+      push:
+        - function-meta
+        - block-contents
+        - function-parameter-list
+        - function-name
+
+    - include: control-statements
+
+    - match: break{{identifier_break}}
+      scope: keyword.control.break.lua
+
+    - match: return{{identifier_break}}
+      scope: keyword.control.return.lua
+      push: expression-list
+
+    - match: (?=\S)
+      push: expression
+
+  function-parameter-list:
+    - match: \(
+      scope: punctuation.section.group.begin.lua
+      set:
+        - meta_scope: meta.group.lua
+        - match: \)
+          scope: punctuation.section.group.end.lua
+          pop: true
+        - match: ','
+          scope: punctuation.separator.comma.lua
+        - match: '{{identifier}}'
+          scope: variable.parameter.function.lua
+    - include: else-pop
+
+  function-name:
+    - match: (?=\S)
+      set: [ function-name-end, function-name-begin ]
+
+  function-name-end:
+    - meta_scope: meta.name.function
+    - match: '\.'
+      scope: punctuation.accessor.lua
+      push: function-name-property
+    - include: else-pop
+
+  function-name-begin:
+    - match: '{{identifier}}(?=\s*\.)'
+      scope: variable.other.lua
+      pop: true
+    - match: '{{identifier}}'
+      scope: entity.name.function.lua
+      pop: true
+    - include: else-pop
+
+  function-name-property:
+    - match: '{{identifier}}(?=\s*\.)'
+      scope: meta.property.lua
+      pop: true
+    - match: '{{identifier}}'
+      scope: meta.property.lua entity.name.function.lua
+      pop: true
+    - include: else-pop
+
+  control-statements:
+    - match: if{{identifier_break}}
+      scope: keyword.control.conditional.lua
+      push:
+        - - include: end
+          - match: else if{{identifier_break}}
+            scope: keyword.control.conditional.lua
+            push:
+              - if-then
+              - expression
+          - match: else{{identifier_break}}
+            scope: keyword.control.conditional.lua
+            push: if-block
+
+        - if-then
+        - expression
+
+    - match: while{{identifier_break}}
+      scope: keyword.control.loop.lua
+      push:
+        - expression
+
+    - match: for{{identifier_break}}
+      scope: keyword.control.loop.lua
+      push:
+        - - match: (?==)
+            set: expression-list-end
+
+          - match: in{{identifier_break}}
+            scope: keyword.control.loop.lua
+            set: expression-list
+
+          - include: else-pop
+
+        - expression-list
+
+  if-then:
+    - match: then{{identifier_break}}
+      scope: keyword.control.conditional.lua
+      set: if-block
+    - include: else-pop
+
+  if-block:
+    - meta_scope: meta.block.lua
+    - match: (?=(?:end|else if|else){{identifier_break}})
+      pop: true
+    - include: statements
+
+  expression:
+    - match: ''
+      set:
+        - expression-end
+        - expression-begin
+
+  expression-end:
+    - match: (?=;)
+      pop: true
+
+    - match: (?={{function_args_begin}})
+      push:
+        - function-arguments-meta
+        - function-arguments
+
+    - include: infix-operator
+    - include: accessor
+
+    - include: else-pop
+
+  expression-begin:
+    - match: (?=;)
+      pop: true
+
+    - include: prefix-operator
+    - include: builtin
+    - include: support
+    - include: variable
+    - include: number
+    - include: string
+    - include: parenthesized-expression
+    - include: table-constructor
+    - include: function-literal
+
+    - include: else-pop
+
+  expression-list:
+    - match: ''
+      set:
+        - expression-list-end
+        - expression-begin
+
+  expression-list-end:
+    - match: ','
+      scope: punctuation.separator.comma.lua
+      push: expression-begin
+    - include: expression-end
+
+  infix-operator:
+    - match: (?:[=<>!]=)
+      scope: keyword.operator.comparison.lua
+      push: expression-begin
+    - match: (?://|[-+*/%^])
+      scope: keyword.operator.arithmetic.lua
+      push: expression-begin
+    - match: (?:[<>])
+      scope: keyword.operator.comparison.lua
+      push: expression-begin
+    - match: =
+      scope: keyword.operator.assignment.lua
+      push: expression-begin
+    - match: (?:and|or|not){{identifier_break}}
+      scope: keyword.operator.logical.lua
+      push: expression-begin
+
+  accessor:
+    - match: '\.'
+      scope: punctuation.accessor.lua
+      push: property
+
+    - match: \[
+      scope: punctuation.section.brackets.begin.lua
+      push:
+        - meta_scope: meta.brackets.lua
+        - match: \]
+          scope: punctuation.section.brackets.end.lua
+          pop: true
+        - match: (?=\S)
+          push: expression
+
+  property:
+    - match: '{{identifier}}{{function_assignment_ahead}}'
+      scope: meta.property.lua entity.name.function.lua
+      pop: true
+    - match: '{{identifier}}{{function_call_ahead}}'
+      scope: meta.property.lua variable.function.lua
+      pop: true
+    - match: '{{identifier}}'
+      scope: meta.property.lua
+      pop: true
+    - include: else-pop
+
+  function-arguments-meta:
+    - meta_scope: meta.function-call.arguments.lua
+    - include: immediately-pop
+
+  function-arguments:
+    - include: string
+    - include: table-constructor
+
+    - match: \(
+      scope: punctuation.section.group.begin.lua
+      set:
+        - meta_scope: meta.group.lua
+        - match: \)
+          scope: punctuation.section.group.end.lua
+          pop: true
+        - match: (?=\S)
+          push: expression-list
+
+  prefix-operator:
+    - match: \-
+      scope: keyword.operator.arithmetic.lua
+    - match: not{{identifier_break}}
+      scope: keyword.operator.logical.lua
+
+  builtin:
+    - match: true{{identifier_break}}
+      scope: constant.language.boolean.true.lua
+      pop: true
+    - match: false{{identifier_break}}
+      scope: constant.language.boolean.true.lua
+      pop: true
+    - match: null{{identifier_break}}
+      scope: constant.language.null.lua
+      pop: true
+    - match: self{{identifier_break}}
+      scope: variable.language.this.lua
+      pop: true
+
+  support:
+    - match: |-
+        (?x:
+          globals|locals|time|current_date|parent_path|
+          home_dir|program_path|active_user|user_mail_address|
+          user_bank_number|pi|rnd|val|values|print|trim|pop|
+          pull|shuffle|reverse|sort|len|sum|code|indexes
+        ){{identifier_break}}
+      scope: support.function.builtin.lua
+      pop: true
+
+  variable:
+    - match: '{{identifier}}{{function_assignment_ahead}}'
+      scope: entity.name.function.lua
+      pop: true
+
+    - match: '{{identifier}}{{function_call_ahead}}'
+      scope: variable.function.lua
+      pop: true
+
+    - match: '{{identifier}}'
+      scope: variable.other.lua
+      pop: true
+
+  number:
+    - match: \d+(?:\.\d*)?([Ee][-+]?\d*)?
+      scope: constant.numeric.decimal.lua
+      pop: true
+
+  string:
+    - match: \'
+      scope: punctuation.definition.string.begin.lua
+      set:
+        - meta_include_prototype: false
+        - meta_scope: string.quoted.single.lua
+        - include: string-content
+        - match: \'
+          scope: punctuation.definition.string.end.lua
+          pop: true
+
+    - match: \"
+      scope: punctuation.definition.string.begin.lua
+      set:
+        - meta_include_prototype: false
+        - meta_scope: string.quoted.double.lua
+        - include: string-content
+        - match: \"
+          scope: punctuation.definition.string.end.lua
+          pop: true
+
+  string-content:
+    - match: \\[abfnrtv\\'"\[\]\n]
+      scope: constant.character.escape.lua
+
+    - match: \\x\h\h
+      scope: constant.character.escape.hexadecimal.lua
+
+    - match: \\\d{1,3}
+      scope: constant.character.escape.decimal.lua
+
+    - match: \\u\{\h+\}
+      scope: constant.character.escape.unicode.lua
+
+    - match: \\z
+      push:
+        - meta_scope: constant.character.escape.whitespace.lua
+        - include: else-pop
+
+    - match: \n
+      scope: invalid.illegal.newline.lua
+
+  parenthesized-expression:
+    - match: \(
+      scope: punctuation.section.group.begin.lua
+      set:
+        - meta_scope: meta.group.lua
+        - match: \)
+          scope: punctuation.section.group.end.lua
+          pop: true
+        - match: (?=\S)
+          push: expression
+
+  table-constructor:
+    - match: \{
+      scope: punctuation.section.block.begin.lua
+      set:
+        - meta_scope: meta.mapping.lua
+        - match: \}
+          scope: punctuation.section.block.end.lua
+          pop: true
+
+        - match: ','
+          scope: punctuation.separator.field.lua
+
+        - match: \[
+          scope: punctuation.section.brackets.begin.lua
+          push:
+            - meta_scope: meta.brackets.lua
+            - match: \]
+              scope: punctuation.section.brackets.end.lua
+              pop: true
+            - match: (?=\S)
+              push: expression
+
+        - match: '{{identifier}}(?=\s*=)'
+          scope: meta.key.lua string.unquoted.key.lua
+
+        - match: =
+          scope: punctuation.separator.key-value.lua
+          push: expression
+
+        - match: (?=\S)
+          push: expression
+
+  function-literal: # Hacky solution
+    - match: (?<!end)\s+function{{identifier_break}}
+      scope: storage.type.function.lua
+      set:
+        - function-meta
+        - block-contents
+        - function-parameter-list
+        - function-name
+
+  function-meta:
+    - meta_scope: meta.function.lua
+    - include: immediately-pop
