@@ -258,6 +258,18 @@ contexts:
     - match: '{{identifier}}{{function_call_ahead}}'
       scope: meta.property.lua variable.function.lua
       pop: true
+    - match: |-
+        (?x:
+          public_ip|local_ip|get_computers|used_ports|bssid_name|
+          essid_name|get_ports|is_network_active|lan_ip|current_path|
+          path|content|is_binary|is_folder|owner|permissions|parent|
+          name|size|delete|get_folders|get_files|get_lan_ip|is_closed|
+          port_number|trim|indexes|code|len|lower|upper|val|values|rnd|
+          pi|pop|pull|shuffle|reverse|sort|indexes|len|sum|values|
+          indexes|len|pop|shuffle|sum|values
+        ){{identifier_break}}
+      scope: meta.property.lua variable.function.lua
+      pop: true
     - match: '{{identifier}}'
       scope: meta.property.lua
       pop: true
@@ -293,12 +305,14 @@ contexts:
       pop: true
 
   support:
+    - match: (globals|locals|params){{identifier_break}}
+      scope: support.constant.builtin.lua
+      pop: true
     - match: |-
         (?x:
-          globals|locals|time|current_date|parent_path|
-          home_dir|program_path|active_user|user_mail_address|
-          user_bank_number|pi|rnd|key|val|value|values|print|trim|pop|
-          pull|shuffle|reverse|sort|len|sum|code|indexes
+          time|current_date|pi|rnd|val|print|len|indexes|
+          home_dir|program_path|parent_path|active_user|
+          user_mail_address|user_bank_number|exit
         ){{identifier_break}}
       scope: support.function.builtin.lua
       pop: true
