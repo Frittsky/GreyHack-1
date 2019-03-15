@@ -260,13 +260,12 @@ contexts:
       pop: true
     - match: |-
         (?x:
-          public_ip|local_ip|get_computers|used_ports|bssid_name|
-          essid_name|get_ports|is_network_active|lan_ip|current_path|
-          path|content|is_binary|is_folder|owner|permissions|parent|
-          name|size|delete|get_folders|get_files|get_lan_ip|is_closed|
-          port_number|trim|indexes|code|len|lower|upper|val|values|rnd|
-          pi|pop|pull|shuffle|reverse|sort|indexes|len|sum|values|
-          indexes|len|pop|shuffle|sum|values
+          bssid_name|code|content|current_path|delete|essid_name|
+          get_computers|get_files|get_folders|get_lan_ip|get_ports|
+          indexes|is_binary|is_closed|is_folder|is_network_active|
+          key|lan_ip|len|local_ip|lower|name|owner|parent|path|
+          permissions|pi|pop|port_number|public_ip|pull|reverse|rnd|
+          shuffle|size|sort|sum|trim|upper|used_ports|val|value|values
         ){{identifier_break}}
       scope: meta.property.lua variable.function.lua
       pop: true
