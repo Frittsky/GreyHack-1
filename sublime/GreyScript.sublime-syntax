@@ -360,9 +360,6 @@ contexts:
         - meta_scope: constant.character.escape.whitespace.lua
         - include: else-pop
 
-    - match: \n
-      scope: invalid.illegal.newline.lua
-
   parenthesized-expression:
     - match: \(
       scope: punctuation.section.group.begin.lua
