@@ -20,7 +20,7 @@ variables:
   identifier_raw: (?:{{identifier_start}}{{identifier_char}}*)
   identifier: (?:(?!{{reserved_word}}){{identifier_raw}})
 
-  function_args_begin: (?:\(|"|'|\[=*\[|\{)
+  function_args_begin: (?:\(|"|')
   function_call_ahead: (?=\s*{{function_args_begin}})
   function_assignment_ahead: (?=\s*=\s*function{{identifier_break}})
 
@@ -288,17 +288,8 @@ contexts:
       scope: keyword.operator.logical.lua
 
   builtin:
-    - match: true{{identifier_break}}
-      scope: constant.language.boolean.true.lua
-      pop: true
-    - match: false{{identifier_break}}
-      scope: constant.language.boolean.true.lua
-      pop: true
     - match: null{{identifier_break}}
       scope: constant.language.null.lua
-      pop: true
-    - match: self{{identifier_break}}
-      scope: variable.language.this.lua
       pop: true
 
   support:
@@ -306,7 +297,7 @@ contexts:
         (?x:
           globals|locals|time|current_date|parent_path|
           home_dir|program_path|active_user|user_mail_address|
-          user_bank_number|pi|rnd|val|values|print|trim|pop|
+          user_bank_number|pi|rnd|key|val|value|values|print|trim|pop|
           pull|shuffle|reverse|sort|len|sum|code|indexes
         ){{identifier_break}}
       scope: support.function.builtin.lua
@@ -352,7 +343,7 @@ contexts:
           pop: true
 
   string-content:
-    - match: \\[abfnrtv\\'"\[\]\n]
+    - match: \\[nrt\\]
       scope: constant.character.escape.lua
 
     - match: \\x\h\h
